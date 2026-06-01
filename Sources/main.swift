@@ -61,7 +61,7 @@ class CalendarPoller {
 
     private func fetchUpcomingEvents(completion: @escaping ([CalendarEvent]) -> Void) {
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/Users/rgodishela/.local/bin/claude")
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
 
         let now = ISO8601DateFormatter().string(from: Date())
 
@@ -72,7 +72,7 @@ class CalendarPoller {
         No explanation, just the JSON array. If no events, return [].
         """
 
-        task.arguments = ["-p", prompt, "--output-format", "json"]
+        task.arguments = ["claude", "-p", prompt, "--output-format", "json"]
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = FileHandle.nullDevice

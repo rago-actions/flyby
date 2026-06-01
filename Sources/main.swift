@@ -30,6 +30,16 @@ class CalendarPoller {
             let now = Date()
             let fiveMinutes: TimeInterval = 5 * 60
 
+            let timestamp = ISO8601DateFormatter().string(from: now)
+            if events.isEmpty {
+                print("[\(timestamp)] Poll: no upcoming events")
+            } else {
+                for e in events {
+                    let mins = e.startTime.timeIntervalSince(now) / 60
+                    print("[\(timestamp)] Poll: \"\(e.title)\" in \(String(format: "%.1f", mins)) min")
+                }
+            }
+
             for event in events {
                 let timeUntil = event.startTime.timeIntervalSince(now)
                 let eventKey = "\(event.title)-\(Int(event.startTime.timeIntervalSince1970))"
@@ -51,7 +61,7 @@ class CalendarPoller {
 
     private func fetchUpcomingEvents(completion: @escaping ([CalendarEvent]) -> Void) {
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        task.executableURL = URL(fileURLWithPath: "/Users/rgodishela/.local/bin/claude")
 
         let now = ISO8601DateFormatter().string(from: Date())
 
@@ -62,7 +72,7 @@ class CalendarPoller {
         No explanation, just the JSON array. If no events, return [].
         """
 
-        task.arguments = ["claude", "-p", prompt, "--output-format", "json"]
+        task.arguments = ["-p", prompt, "--output-format", "json"]
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = FileHandle.nullDevice
@@ -73,8 +83,14 @@ class CalendarPoller {
 
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             guard let raw = String(data: data, encoding: .utf8) else {
+                print("[Poll error] Could not decode CLI output as UTF-8")
                 completion([])
                 return
+            }
+
+            print("[Poll raw] exit=\(task.terminationStatus) bytes=\(data.count)")
+            if data.count < 500 {
+                print("[Poll raw] \(raw)")
             }
 
             // Parse the claude JSON envelope
@@ -88,6 +104,7 @@ class CalendarPoller {
                 completion(events)
             }
         } catch {
+            print("[Poll error] Failed to launch claude CLI: \(error)")
             completion([])
         }
     }
